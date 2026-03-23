@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, Gamepad2, Home, Leaf, Recycle, Trash2, AlertTriangle, CheckCircle2, XCircle, ArrowRight, RotateCcw, History, Calendar, User } from 'lucide-react';
+import { BookOpen, Gamepad2, Home, Leaf, Recycle, Trash2, AlertTriangle, CheckCircle2, XCircle, ArrowRight, RotateCcw, History, Calendar, User, Share2 } from 'lucide-react';
 import { wasteKnowledgeData, quizQuestions } from './data';
 import { BinColor } from './types';
 import { supabase } from './lib/supabase';
@@ -218,6 +218,7 @@ function QuizSection({ onNavigate }: { onNavigate: (tab: 'history') => void }) {
   const [isFinished, setIsFinished] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const question = quizQuestions[currentQIndex];
 
@@ -278,6 +279,33 @@ function QuizSection({ onNavigate }: { onNavigate: (tab: 'history') => void }) {
     setIsFinished(false);
     setHasStarted(false);
     setSaveError('');
+    setCopied(false);
+  };
+
+  const handleShare = async () => {
+    const shareText = `ฉันทำแบบฝึกหัดคัดแยกขยะ EcoSort ได้คะแนน ${score}/${quizQuestions.length}! มาลองทดสอบความรู้กันเถอะ ♻️`;
+    const shareUrl = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'EcoSort - แบบฝึกหัดคัดแยกขยะ',
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
   };
 
   if (!hasStarted) {
@@ -342,24 +370,34 @@ function QuizSection({ onNavigate }: { onNavigate: (tab: 'history') => void }) {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col gap-4 mt-8">
           <button
-            onClick={restartQuiz}
-            className="inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-full font-bold text-lg transition-colors"
+            onClick={handleShare}
+            className="w-full inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-full font-bold text-lg transition-colors shadow-md hover:shadow-lg"
           >
-            <RotateCcw size={20} />
-            เล่นอีกครั้ง
+            {copied ? <CheckCircle2 size={24} /> : <Share2 size={24} />}
+            {copied ? 'คัดลอกข้อความแล้ว! นำไปวางเพื่อแชร์ได้เลย' : 'แชร์คะแนนชวนเพื่อนมาเล่น'}
           </button>
-          <button
-            onClick={() => onNavigate('history')}
-            className="inline-flex items-center justify-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-800 px-8 py-4 rounded-full font-bold text-lg transition-colors"
-          >
-            <History size={20} />
-            ดูประวัติคะแนน
-          </button>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={restartQuiz}
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-full font-bold text-lg transition-colors"
+            >
+              <RotateCcw size={20} />
+              เล่นอีกครั้ง
+            </button>
+            <button
+              onClick={() => onNavigate('history')}
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-800 px-6 py-4 rounded-full font-bold text-lg transition-colors"
+            >
+              <History size={20} />
+              ดูประวัติคะแนน
+            </button>
+          </div>
         </div>
         
-        {isSaving && <p className="text-sm text-gray-500 mt-4">กำลังบันทึกคะแนน...</p>}
+        {isSaving && <p className="text-sm text-gray-500 mt-6">กำลังบันทึกคะแนน...</p>}
         {saveError && (
           <div className="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm text-left">
             <p className="font-bold flex items-center gap-2"><AlertTriangle size={16} /> บันทึกคะแนนไม่สำเร็จ:</p>
